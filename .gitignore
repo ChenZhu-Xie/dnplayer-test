@@ -1,0 +1,12 @@
+# User Custom
+*.sublime-project
+*.sublime-workspace
+.verysync
+
+# OS System Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
