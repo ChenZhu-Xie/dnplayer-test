@@ -46,17 +46,30 @@ def main():
         )
         
         try:
-            bot.run()
+            result = bot.run()
             log.info("")
-            log.info("[成功] 所有自动化流程执行完毕!")
+            
+            if result["success"]:
+                log.info(f"[成功] 账号切换完成! 共执行 {result['completed_steps']}/{result['total_steps']} 步")
+                print(f"RESULT: SUCCESS | 步骤: {result['completed_steps']}/{result['total_steps']}")
+                sys.exit(0)
+            else:
+                log.error(f"[失败] 流程中断于: {result['failed_step']}")
+                print(f"RESULT: FAILED | 失败步骤: {result['failed_step']} | 已完成: {result['completed_steps']}/{result['total_steps']}")
+                sys.exit(1)
+                
         except KeyboardInterrupt:
             log.info("")
             log.info("[中断] 用户手动停止脚本")
+            print("RESULT: INTERRUPTED")
+            sys.exit(2)
         except Exception as e:
             log.error(f"")
-            log.error(f"[错误] 流程执行失败: {e}")
+            log.error(f"[错误] 流程执行异常: {e}")
+            print(f"RESULT: ERROR - {e}")
             import traceback
             traceback.print_exc()
+            sys.exit(3)
         
         log.info("")
         log.info("=" * 50)

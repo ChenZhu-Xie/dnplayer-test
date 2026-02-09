@@ -87,7 +87,7 @@ class GameBot:
         return False
 
     def execute_step(self, success_image, action_image=None, action_index=0, 
-                     click_offset=None, success_check="exists"):
+                     click_offset=None, success_check="exists", action_from_bottom=False):
         """
         通用原子操作：一直循环直到 success_image 出现
         
@@ -97,6 +97,7 @@ class GameBot:
             action_index: 如果屏幕有多个 action_image，点击第几个
             click_offset: 点击 action_image 后的额外偏移点击 (dx, dy)
             success_check: "exists" (存在即成功) 或 "disappear" (消失即成功)
+            action_from_bottom: 是否从底部开始计数（默认False表示从上到下）
         """
         if self.log:
             self.log.info(f"--- 阶段开始: 等待 {os.path.basename(success_image)} ---")
@@ -124,12 +125,26 @@ class GameBot:
             # 3. 执行动作
             if action_image and os.path.exists(action_image):
                 targets = self._find_all(action_image)
+                
+                # 如果需要从底部计数，先按Y坐标排序
+                if action_from_bottom and targets:
+                    targets.sort(key=lambda t: t.top)
+                    # 从底部取目标
+                    actual_index = -(action_index + 1)
+                else:
+                    actual_index = action_index
+                
                 if len(targets) > action_index:
-                    target = targets[action_index]
+                    target = targets[actual_index]
                     x, y = pyautogui.center(target)
                     
+                    # 记录是从底部还是顶部选择
+                    pos_desc = f"第 {action_index + 1} 个"
+                    if action_from_bottom:
+                        pos_desc = f"从下往上第 {action_index + 1} 个"
+                    
                     if self.log:
-                        self.log.info(f"点击 {os.path.basename(action_image)} (第 {action_index + 1} 个)")
+                        self.log.info(f"点击 {os.path.basename(action_image)} ({pos_desc})")
                     
                     self._click_location(x, y)
                     
@@ -146,69 +161,74 @@ class GameBot:
 
             time.sleep(0.5)
 
-        # 阶段完成后统一等待 2 秒
+            # 阶段完成后统一等待 2 秒
         if self.log:
             self.log.info("阶段完成，等待 2 秒...")
         time.sleep(2)
+        return True
 
     def run(self):
-        """主业务流程"""
+        """主业务流程，返回执行状态"""
         
         if self.log:
             self.log.info("=" * 50)
             self.log.info("开始游戏自动化流程")
             self.log.info("=" * 50)
         
-        # 修复 2: 新增前置步骤
-        # 步骤 0: 点击 IT.png，直到 IT_float 出现
-        self.execute_step(
-            success_image=self.img_it_float,
-            action_image=self.img_it
-        )
-
-        # 步骤 1: 点击 DL_entry，直到 start 出现
-        self.execute_step(
-            success_image=self.img_start,
-            action_image=self.img_dl_entry
-        )
-
-        # 步骤 2: 点击 user，直到 switch_account 出现
-        self.execute_step(
-            success_image=self.img_switch,
-            action_image=self.img_user
-        )
-
-        # 步骤 3: 点击 switch_account，直到 login 出现
-        self.execute_step(
-            success_image=self.img_login,
-            action_image=self.img_switch
-        )
-
-        # 修复 1: 点击第 2 个 login 按钮，直到 login 消失
-        # action_index=1 表示点击第 2 个匹配项（从上到下排序）
-        self.execute_step(
-            success_image=self.img_login,
-            action_image=self.img_login,
-            action_index=1,
-            success_check="disappear"
-        )
-
-        # 步骤 5: 点击 IT_float 及其偏移，直到 continue 出现
-        # 需求：点击按钮，然后立马点击左边 80px
-        self.execute_step(
-            success_image=self.img_continue,
-            action_image=self.img_it_float,
-            click_offset=(-80, 0)
-        )
-
-        # 步骤 6: 点击 continue 直到它消失
-        self.execute_step(
-            success_image=self.img_continue,
-            action_image=self.img_continue,
-            success_check="disappear"
-        )
-
+        # 定义步骤列表
+        steps = [
+            ("点击IT图标", self.img_it, self.img_it_float, {"action": "click"}),
+            ("点击DL_entry", self.img_dl_entry, self.img_start, {"action": "click"}),
+            ("点击user", self.img_user, self.img_switch, {"action": "click"}),
+            ("点击switch_account", self.img_switch, self.img_login, {"action": "click"}),
+            ("点击最下面login", self.img_login, self.img_login, {
+                "action": "click", "action_index": 0, "action_from_bottom": True, "success_check": "disappear"
+            }),
+            ("点击IT_float偏移", self.img_it_float, self.img_continue, {
+                "action": "click", "click_offset": (-280, 0)
+            }),
+            ("点击continue直到消失", self.img_continue, self.img_continue, {
+                "action": "click", "success_check": "disappear"
+            }),
+        ]
+        
+        completed_steps = 0
+        failed_step = None
+        
+        for i, (step_name, action_img, success_img, kwargs) in enumerate(steps, 1):
+            if self.log:
+                self.log.info(f"\n[步骤 {i}/{len(steps)}] {step_name}")
+            
+            try:
+                success = self.execute_step(
+                    success_image=success_img,
+                    action_image=action_img,
+                    **kwargs
+                )
+                if success:
+                    completed_steps += 1
+                else:
+                    failed_step = step_name
+                    if self.log:
+                        self.log.error(f"步骤失败: {step_name}")
+                    break
+            except Exception as e:
+                failed_step = step_name
+                if self.log:
+                    self.log.error(f"步骤异常: {step_name} - {e}")
+                break
+        
         if self.log:
             self.log.info("=" * 50)
-            self.log.info("所有自动化流程执行完毕")
+            if failed_step:
+                self.log.info(f"流程中断，失败步骤: {failed_step}")
+            else:
+                self.log.info("所有自动化流程执行完毕")
             self.log.info("=" * 50)
+        
+        return {
+            "success": failed_step is None,
+            "completed_steps": completed_steps,
+            "total_steps": len(steps),
+            "failed_step": failed_step
+        }

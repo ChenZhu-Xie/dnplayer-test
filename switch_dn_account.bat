@@ -1,12 +1,31 @@
 @echo off
+chcp 65001
 :: Switch to the script directory
 cd /d "%~dp0"
 
-echo Current Work Dir: %cd%
+echo [BATCH] 当前工作目录: %cd%
+echo [BATCH] 启动账号切换脚本...
+echo.
 
-:: Run the python script
-:: Make sure the path below matches your actual python.exe location
+:: Run the python script and capture exit code
 "D:\Anaconda\envs\dnplayer\python.exe" main_controller.py
+set EXIT_CODE=%errorlevel%
 
-:: Pause to keep window open
-pause
+echo.
+echo [BATCH] Python脚本已结束，退出码: %EXIT_CODE%
+
+:: 根据退出码输出状态
+if %EXIT_CODE% equ 0 (
+    echo [BATCH_DONE] 账号切换成功
+) else if %EXIT_CODE% equ 1 (
+    echo [BATCH_FAILED] 账号切换失败，请查看日志
+) else if %EXIT_CODE% equ 2 (
+    echo [BATCH_INTERRUPTED] 用户手动中断
+) else if %EXIT_CODE% equ 3 (
+    echo [BATCH_ERROR] 发生异常错误
+) else (
+    echo [BATCH_UNKNOWN] 未知退出码: %EXIT_CODE%
+)
+
+:: 返回退出码给调用者
+exit /b %EXIT_CODE%
