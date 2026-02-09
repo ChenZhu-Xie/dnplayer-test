@@ -2,35 +2,6 @@
   "paths": {
     "dnplayer_exe": "E:\\Runtime\\leidian\\LDPlayer9\\dnplayer.exe"
   },
-  "workflow": {
-    "steps": [
-      {
-        "name": "点击桌面图标",
-        "image": "assets\\IT.png",
-        "action": "click",
-        "timeout": 60
-      },
-      {
-        "name": "等待悬浮窗确认",
-        "image": "assets\\IT_float.png",
-        "action": "check",
-        "timeout": 30,
-        "post_wait": 2
-      },
-      {
-        "name": "点击下载入口",
-        "image": "assets\\DL_entry.png",
-        "action": "click",
-        "timeout": 30
-      },
-      {
-        "name": "等待开始界面",
-        "image": "assets\\start.png",
-        "action": "check",
-        "timeout": 60
-      }
-    ]
-  },
   "settings": {
     "click_confidence": 0.8,
     "log_file": "bot_run.log",
