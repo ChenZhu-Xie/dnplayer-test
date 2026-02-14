@@ -69,12 +69,19 @@ class GameBot:
         return False
 
     def execute_step(self, success_target, action_target=None, action_index=0, 
-                     click_offset=None, success_check="exists", action_from_bottom=False):
-        """通用原子操作"""
+                     click_offset=None, success_check="exists", action_from_bottom=False,
+                     post_wait=2, skip_post_wait=None):
+        """通用原子操作
+        
+        参数:
+            post_wait: 阶段完成后等待的秒数（默认2秒）
+            skip_post_wait: 如果未执行点击动作就直接进入下一步时的等待秒数
+        """
         if self.log:
             self.log.info(f"--- 阶段开始: 等待 {success_target} ---")
         
         loop_count = 0
+        action_performed = False
         while True:
             loop_count += 1
             
@@ -82,16 +89,26 @@ class GameBot:
                 continue
 
             # 检查成功条件
-            if success_check == "exists":
-                if self.matcher.target_exists(success_target):
-                    if self.log:
-                        self.log.info(f"*** 成功检测到 {success_target} ***")
-                    break
-            else:
-                if not self.matcher.target_exists(success_target):
-                    if self.log:
-                        self.log.info(f"*** {success_target} 已消失 ***")
-                    break
+            # 支持单个目标或目标列表
+            targets = success_target if isinstance(success_target, list) else [success_target]
+            found_break = False
+            
+            for target in targets:
+                if success_check == "exists":
+                    if self.matcher.target_exists(target):
+                        if self.log:
+                            self.log.info(f"*** 成功检测到 {target} ***")
+                        found_break = True
+                        break
+                else:
+                    if not self.matcher.target_exists(target):
+                        if self.log:
+                            self.log.info(f"*** {target} 已消失 ***")
+                        found_break = True
+                        break
+            
+            if found_break:
+                break
 
             # 执行动作
             if action_target:
@@ -107,9 +124,10 @@ class GameBot:
                                 self.log.info(f"点击 {action_target} (从下往上第 {action_index + 1} 个)")
                             
                             self._click_location(x, y)
+                            action_performed = True
                             
                             if click_offset:
-                                time.sleep(0.2)
+                                time.sleep(1.5)
                                 off_x, off_y = click_offset
                                 self._click_location(x + off_x, y + off_y)
                 else:
@@ -121,9 +139,10 @@ class GameBot:
                             self.log.info(f"点击 {action_target}")
                         
                         self._click_location(x, y)
+                        action_performed = True
                         
                         if click_offset:
-                            time.sleep(0.2)
+                            time.sleep(1.5)
                             off_x, off_y = click_offset
                             self._click_location(x + off_x, y + off_y)
                     else:
@@ -132,9 +151,16 @@ class GameBot:
 
             time.sleep(0.5)
 
+        # 确定最终等待时间
+        wait_time = post_wait
+        if not action_performed and skip_post_wait is not None:
+            wait_time = skip_post_wait
+            if self.log:
+                self.log.info(f"检测到步骤跳过，使用缩短的等待时间: {wait_time} 秒")
+
         if self.log:
-            self.log.info("阶段完成，等待 2 秒...")
-        time.sleep(2)
+            self.log.info(f"阶段完成，等待 {wait_time} 秒...")
+        time.sleep(wait_time)
         return True
 
     def run(self):
@@ -148,13 +174,14 @@ class GameBot:
         steps = [
             ("点击IT图标", self.TARGET_IT_FLOAT, self.TARGET_IT, {}),
             ("点击DL_entry", self.TARGET_START, self.TARGET_DL_ENTRY, {}),
-            ("点击user", self.TARGET_SWITCH, self.TARGET_USER, {}),
-            ("点击switch_account", self.TARGET_LOGIN, self.TARGET_SWITCH, {}),
+            ("点击user", [self.TARGET_SWITCH, self.TARGET_LOGIN], self.TARGET_USER, {"post_wait": 4}),
+            ("点击switch_account", self.TARGET_LOGIN, self.TARGET_SWITCH, {"post_wait": 3, "skip_post_wait": 2}),
             ("点击最下面login", self.TARGET_LOGIN, self.TARGET_LOGIN, {
-                "action_index": 0, "action_from_bottom": True, "success_check": "disappear"
+                "action_index": 0, "action_from_bottom": True, "success_check": "disappear",
+                "post_wait": 5
             }),
             ("点击IT_float偏移", self.TARGET_CONTINUE, self.TARGET_IT_FLOAT, {
-                "click_offset": (-280, 0)
+                "click_offset": (-280, 0), "post_wait": 2
             }),
             ("点击continue直到消失", self.TARGET_CONTINUE, self.TARGET_CONTINUE, {
                 "success_check": "disappear"

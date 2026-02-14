@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001
 :: Switch to the script directory
 cd /d "%~dp0"
