@@ -9,7 +9,7 @@ class GameBot:
         self.confidence = confidence
         self.assets_dir = assets_dir
         self.log = log
-        
+
         # 导入 TemplateMatcher
         from .template_matcher import TemplateMatcher
         self.matcher = TemplateMatcher(
@@ -17,7 +17,7 @@ class GameBot:
             confidence=confidence,
             log=log
         )
-        
+
         # 定义逻辑目标名称（对应文件夹名）
         self.TARGET_IT = "IT"
         self.TARGET_IT_FLOAT = "IT_float"
@@ -68,23 +68,23 @@ class GameBot:
 
         return False
 
-    def execute_step(self, success_target, action_target=None, action_index=0, 
+    def execute_step(self, success_target, action_target=None, action_index=0,
                      click_offset=None, success_check="exists", action_from_bottom=False,
                      post_wait=2, skip_post_wait=None):
         """通用原子操作
-        
+
         参数:
             post_wait: 阶段完成后等待的秒数（默认2秒）
             skip_post_wait: 如果未执行点击动作就直接进入下一步时的等待秒数
         """
         if self.log:
             self.log.info(f"--- 阶段开始: 等待 {success_target} ---")
-        
+
         loop_count = 0
         action_performed = False
         while True:
             loop_count += 1
-            
+
             if self.check_interrupts():
                 continue
 
@@ -92,7 +92,7 @@ class GameBot:
             # 支持单个目标或目标列表
             targets = success_target if isinstance(success_target, list) else [success_target]
             found_break = False
-            
+
             for target in targets:
                 if success_check == "exists":
                     if self.matcher.target_exists(target):
@@ -106,7 +106,7 @@ class GameBot:
                             self.log.info(f"*** {target} 已消失 ***")
                         found_break = True
                         break
-            
+
             if found_break:
                 break
 
@@ -119,30 +119,30 @@ class GameBot:
                         if len(all_matches) > action_index:
                             target = all_matches[actual_index]
                             x, y = target
-                            
+
                             if self.log:
                                 self.log.info(f"点击 {action_target} (从下往上第 {action_index + 1} 个)")
-                            
+
                             self._click_location(x, y)
                             action_performed = True
-                            
+
                             if click_offset:
-                                time.sleep(1.5)
+                                time.sleep(0.2)
                                 off_x, off_y = click_offset
                                 self._click_location(x + off_x, y + off_y)
                 else:
                     pos = self.matcher.find_target(action_target)
                     if pos:
                         x, y = pos
-                        
+
                         if self.log:
                             self.log.info(f"点击 {action_target}")
-                        
+
                         self._click_location(x, y)
                         action_performed = True
-                        
+
                         if click_offset:
-                            time.sleep(1.5)
+                            time.sleep(0.2)
                             off_x, off_y = click_offset
                             self._click_location(x + off_x, y + off_y)
                     else:
@@ -165,12 +165,12 @@ class GameBot:
 
     def run(self):
         """主业务流程"""
-        
+
         if self.log:
             self.log.info("=" * 50)
             self.log.info("开始游戏自动化流程")
             self.log.info("=" * 50)
-        
+
         steps = [
             ("点击IT图标", self.TARGET_IT_FLOAT, self.TARGET_IT, {}),
             ("点击DL_entry", self.TARGET_START, self.TARGET_DL_ENTRY, {}),
@@ -187,14 +187,14 @@ class GameBot:
                 "success_check": "disappear"
             }),
         ]
-        
+
         completed_steps = 0
         failed_step = None
-        
+
         for i, (step_name, success_target, action_target, kwargs) in enumerate(steps, 1):
             if self.log:
                 self.log.info(f"\n[步骤 {i}/{len(steps)}] {step_name}")
-            
+
             try:
                 success = self.execute_step(
                     success_target=success_target,
@@ -213,7 +213,7 @@ class GameBot:
                 if self.log:
                     self.log.error(f"步骤异常: {step_name} - {e}")
                 break
-        
+
         if self.log:
             self.log.info("=" * 50)
             if failed_step:
@@ -221,7 +221,7 @@ class GameBot:
             else:
                 self.log.info("所有自动化流程执行完毕")
             self.log.info("=" * 50)
-        
+
         return {
             "success": failed_step is None,
             "completed_steps": completed_steps,
