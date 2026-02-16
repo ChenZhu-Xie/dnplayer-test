@@ -173,9 +173,16 @@ class GameBot:
 
         steps = [
             ("点击IT图标", self.TARGET_IT_FLOAT, self.TARGET_IT, {}),
-            ("点击DL_entry", self.TARGET_START, self.TARGET_DL_ENTRY, {}),
-            ("点击user", [self.TARGET_SWITCH, self.TARGET_LOGIN], self.TARGET_USER, {"post_wait": 4}),
-            ("点击switch_account", self.TARGET_LOGIN, self.TARGET_SWITCH, {"post_wait": 3, "skip_post_wait": 2}),
+            ("点击DL_entry", 
+             [self.TARGET_START, self.TARGET_USER, self.TARGET_SWITCH, self.TARGET_LOGIN], 
+             self.TARGET_DL_ENTRY, {"skip_post_wait": 1}),
+            ("点击start", 
+             [self.TARGET_USER, self.TARGET_SWITCH, self.TARGET_LOGIN], 
+             self.TARGET_START, {"skip_post_wait": 1}),
+            ("点击user", 
+             [self.TARGET_SWITCH, self.TARGET_LOGIN], 
+             self.TARGET_USER, {"post_wait": 4, "skip_post_wait": 1}),
+            ("点击switch_account", self.TARGET_LOGIN, self.TARGET_SWITCH, {"post_wait": 3, "skip_post_wait": 1}),
             ("点击最下面login", self.TARGET_LOGIN, self.TARGET_LOGIN, {
                 "action_index": 0, "action_from_bottom": True, "success_check": "disappear",
                 "post_wait": 5
