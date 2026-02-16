@@ -96,7 +96,7 @@ def restart_dnplayer(dnplayer_path, auto_find_registry=True, log=None):
     启动后立即返回，不阻塞等待，由视觉模块负责检测启动完成
     
     参数:
-        dnplayer_path: 模拟器可执行文件路径
+        dnplayer_path: 模拟器可执行文件路径（支持字符串或路径列表）
         auto_find_registry: 是否尝试从注册表自动查找路径
         log: 日志记录器对象
     """
@@ -113,11 +113,25 @@ def restart_dnplayer(dnplayer_path, auto_find_registry=True, log=None):
         if log:
             log.info(f"{PROCESS_NAME} 未运行，准备启动...")
         
-        if dnplayer_path and os.path.exists(dnplayer_path):
-            start_process(dnplayer_path, log)
+        # 将 dnplayer_path 统一处理为列表
+        paths_to_check = []
+        if isinstance(dnplayer_path, list):
+            paths_to_check.extend(dnplayer_path)
+        elif dnplayer_path:
+            paths_to_check.append(dnplayer_path)
+            
+        # 查找第一个存在的路径
+        valid_path = None
+        for path in paths_to_check:
+            if path and os.path.exists(path):
+                valid_path = path
+                break
+        
+        if valid_path:
+            start_process(valid_path, log)
         elif auto_find_registry:
             if log:
-                log.info("尝试从注册表查找安装路径...")
+                log.info("未找到配置路径，尝试从注册表查找安装路径...")
             
             found_path = find_path_from_registry()
             
@@ -127,7 +141,7 @@ def restart_dnplayer(dnplayer_path, auto_find_registry=True, log=None):
                 start_process(found_path, log)
             else:
                 if log:
-                    log.error("注册表查找失败，且配置路径无效")
+                    log.error("注册表查找失败，且所有配置路径均无效")
         else:
             if log:
                 log.error("错误：未找到运行中的进程，且配置路径无效")

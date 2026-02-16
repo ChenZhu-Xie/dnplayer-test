@@ -4,11 +4,40 @@ chcp 65001
 cd /d "%~dp0"
 
 echo [BATCH] 当前工作目录: %cd%
+echo [BATCH] 正在寻找 Python 环境...
+
+:: 定义候选 Python 路径 (用空格分隔)
+set "PYTHON_CANDIDATES="D:\Anaconda\envs\dnplayer\python.exe" "python""
+set PY_EXE=
+
+for %%P in (%PYTHON_CANDIDATES%) do (
+    if "%%~P"=="python" (
+        where python >nul 2>nul
+        if %errorlevel% equ 0 (
+            set "PY_EXE=python"
+            goto :found
+        )
+    ) else (
+        if exist "%%~P" (
+            set "PY_EXE=%%~P"
+            goto :found
+        )
+    )
+)
+
+if "%PY_EXE%"=="" (
+    echo [BATCH_ERROR] 找不到有效的 Python 环境，请检查路径配置。
+    pause
+    exit /b 1
+)
+
+:found
+echo [BATCH] 使用 Python: %PY_EXE%
 echo [BATCH] 启动账号切换脚本...
 echo.
 
 :: Run the python script and capture exit code
-"D:\Anaconda\envs\dnplayer\python.exe" main_controller.py
+"%PY_EXE%" main_controller.py
 set EXIT_CODE=%errorlevel%
 
 echo.

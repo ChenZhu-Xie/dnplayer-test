@@ -23,7 +23,11 @@ def main():
         log.info("LDPlayer 游戏自动化系统启动")
         log.info("=" * 50)
         
-        log.info(f"模拟器路径: {config['paths']['dnplayer_exe']}")
+        exe_path_conf = config['paths']['dnplayer_exe']
+        if isinstance(exe_path_conf, list):
+            log.info(f"配置的模拟器路径: {', '.join(exe_path_conf)}")
+        else:
+            log.info(f"配置的模拟器路径: {exe_path_conf}")
         log.info(f"识别精度: {config['settings']['click_confidence']}")
         
         log.info("")

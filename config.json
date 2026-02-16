@@ -1,6 +1,13 @@
 {
   "paths": {
-    "dnplayer_exe": "E:\\Runtime\\leidian\\LDPlayer9\\dnplayer.exe"
+    "dnplayer_exe": [
+      "E:\\Runtime\\leidian\\LDPlayer9\\dnplayer.exe",
+      "H:\\雷电\\LDPlayer9\\dnplayer.exe"
+    ],
+    "python_exe": [
+      "D:\\Anaconda\\envs\\dnplayer\\python.exe",
+      "python"
+    ]
   },
   "settings": {
     "click_confidence": 0.8,
