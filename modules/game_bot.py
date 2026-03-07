@@ -29,7 +29,8 @@ class GameBot:
         self.TARGET_CONTINUE = "continue"
         self.TARGET_OFFLINE = "offline_retry"
         self.TARGET_DOWNLOAD = "download_resources"
-        self.TARGET_UPDATE = "update_needed"
+        self.TARGET_GAME_UPDATE = "game_update"
+        self.TARGET_ASSISTANT_UPDATE = "assistant_update"
 
     def _click_location(self, x, y):
         pyautogui.click(x, y)
@@ -38,7 +39,7 @@ class GameBot:
 
     def check_interrupts(self):
         """全局中断检测，返回 True 表示已处理中断"""
-        # 检测断线重连
+        # 1. 检测断线重连
         pos = self.matcher.find_target(self.TARGET_OFFLINE)
         if pos:
             if self.log:
@@ -47,7 +48,7 @@ class GameBot:
             time.sleep(1)
             return True
 
-        # 检测资源下载
+        # 2. 检测资源下载
         pos = self.matcher.find_target(self.TARGET_DOWNLOAD)
         if pos:
             if self.log:
@@ -56,16 +57,31 @@ class GameBot:
             time.sleep(1)
             return True
 
-        # 检测更新弹窗
-        pos = self.matcher.find_target(self.TARGET_UPDATE)
+        # 3. 检测游戏本体更新弹窗 (全局)
+        pos = self.matcher.find_target(self.TARGET_GAME_UPDATE)
         if pos:
             if self.log:
-                self.log.info(">>> 监测到更新弹窗，正在消除...")
-            x, y = pos
-            self._click_location(x, y + 300)
+                self.log.info(">>> 监测到游戏本体更新弹窗，正在消除...")
+            self._click_location(pos[0], pos[1])
             time.sleep(1)
             return True
 
+        return False
+
+    def handle_assistant_update(self):
+        """专门处理辅助启动后的更新公告。
+        不再使用不可靠的亮度感应，而是精准识别带有'开始更新'文字特征的按钮实体。
+        """
+        # 尝试通过样板匹配寻找真正的'开始更新'按钮
+        pos = self.matcher.find_target(self.TARGET_ASSISTANT_UPDATE)
+        if pos:
+            if self.log:
+                self.log.info(">>> [阶段性检测] 发现真正的辅助更新按钮，执行精准点击...")
+            self._click_location(pos[0], pos[1])
+            # 辅助更新通常伴随较长的加载或自重启
+            time.sleep(10)
+            return True
+            
         return False
 
     def execute_step(self, success_target, action_target=None, action_index=0,
@@ -171,6 +187,8 @@ class GameBot:
             self.log.info("开始游戏自动化流程")
             self.log.info("=" * 50)
 
+        # 此时不再调用前置的 handle_initial_dialogs，因为它是阶段性的
+
         steps = [
             ("点击IT图标", self.TARGET_IT_FLOAT, self.TARGET_IT, {}),
             ("点击DL_entry", 
@@ -208,6 +226,7 @@ class GameBot:
                     action_target=action_target,
                     **kwargs
                 )
+                
                 if success:
                     completed_steps += 1
                 else:
@@ -220,6 +239,19 @@ class GameBot:
                 if self.log:
                     self.log.error(f"步骤异常: {step_name} - {e}")
                 break
+
+        # 最终阶段：账号切换已完成，等待并处理可能出现的辅助更新弹窗
+        if failed_step is None:
+            if self.log:
+                self.log.info("\n--- 进入最终收尾阶段：监测辅助更新 ---")
+            
+            # 循环监测几次，因为弹窗弹出有延迟
+            for _ in range(3):
+                if self.handle_assistant_update():
+                    if self.log:
+                        self.log.info("收尾阶段：辅助更新已处理。")
+                    break
+                time.sleep(2)
 
         if self.log:
             self.log.info("=" * 50)

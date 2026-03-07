@@ -180,9 +180,12 @@ build/
 
 # High Resolution Images (大图)
 # 如果项目需要用图片，请注释掉这些，或者只忽略 raw 文件夹
-*.png
-*.jpg
-*.jpeg
+#!current_screen.png
+#*.png
+#*.jpg
+#*.jpeg
+!assets/assistant_update/*.png
+
 *.tiff
 *.bmp
 *.gif
