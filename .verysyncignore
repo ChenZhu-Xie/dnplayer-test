@@ -1,0 +1,70 @@
+// ==============================================================================
+// VerySync (微力同步) 过滤规则 - dnplayer-test 专项目录
+// 目标: E:\MCP\OpenCode\dnplayer-test\.verysyncignore (与对端全路径双向同步)
+// 策略: 保护 Git 双端同步但排除锁；彻底杜绝自动化运行日志冲突锁(bot_run.log等)；保护CV模板资产
+// ==============================================================================
+
+// ------------------------------------------------------------------------------
+// 1. Git 多端并发安全保护（保留仓库与提交历史，排除锁与瞬态工作态）
+// ------------------------------------------------------------------------------
+**/.git/*.lock
+**/.git/index.lock
+**/.git/COMMIT_EDITMSG
+**/.git/TAG_EDITMSG
+**/.git/FETCH_HEAD
+**/.git/ORIG_HEAD
+**/.git/rebase-apply
+**/.git/rebase-merge
+.git/*.lock
+.git/index.lock
+.git/COMMIT_EDITMSG
+
+// ------------------------------------------------------------------------------
+// 2. Python 自动化运行日志与冲突文件 (彻底杜绝 bot_run.sync-conflict 再次产生)
+// ------------------------------------------------------------------------------
+(?d)*.log
+(?d)*.sync-conflict*
+(?d)__pycache__
+(?d)*.py[cod]
+(?d)*$py.class
+(?d).venv
+(?d)venv
+(?d).pytest_cache
+(?d).coverage
+(?d).coverage.*
+(?d)htmlcov
+
+// ------------------------------------------------------------------------------
+// 3. 根目录临时调试截屏 (保护 assets/ 内的CV匹配模板图，仅隔离根目录瞬态诊断截屏)
+// ------------------------------------------------------------------------------
+(?d)current_screen.png
+(?d)emulator_focus.png
+(?d)obstacle_roi.png
+
+// ------------------------------------------------------------------------------
+// 4. 通用现代编辑器单机状态与本地临时文件隔离
+// ------------------------------------------------------------------------------
+// Sublime Text
+(?d)*.sublime-workspace
+
+// VS Code / Cursor / Zed / Helix / JetBrains / Visual Studio
+(?d).vscode/chrome
+(?d).vscode/ipch
+(?d).vscode/.browse.*
+(?d).vscode/*.log
+(?d).cursor/cache
+(?d).cursor/state
+(?d).zed/settings.local.json
+(?d).helix/*.local.toml
+(?d).helix/*.log
+(?d).idea
+
+// Vim / Neovim / 交换文件 / 临时文本 / Office 锁
+(?d)*.swp
+(?d)*.swn
+(?d)*.swo
+(?d)*~
+(?d).netrwhist
+(?d)~$*
+(?d)*.tmp
+(?d)*.bak
