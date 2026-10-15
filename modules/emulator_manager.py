@@ -274,7 +274,13 @@ def restart_via_mumu_manager(mumu_manager_path, vm_index=None, log=None):
         if res.returncode == 0:
             if log:
                 log.info(f"MuMuManager {action} 命令发送成功 (VM: {target_vm})")
-            time.sleep(3)
+            time.sleep(2)
+            # 关键：调用 show_window 将该实例窗口呼出并置于前台
+            try:
+                subprocess.run([mumu_manager_path, "control", "-v", str(target_vm), "show_window"],
+                               capture_output=True, text=True, encoding="utf-8", timeout=10)
+            except Exception:
+                pass
             return True
         else:
             if log:
@@ -302,11 +308,10 @@ def wait_for_device_process(timeout=30, log=None):
 
 def ensure_emulator_running(emulator_path=None, vm_index=None, auto_find_registry=True, log=None):
     """
-    确保模拟器处于运行状态。
-    绝不强杀重启，绝不调用会导致无前台窗口的后台 CLI 开机。
+    确保模拟器处于运行状态并呼出前台窗口。
     1. 若设备渲染进程 (MuMuNxDevice.exe / dnplayer.exe) 已在运行：直接使用；
-    2. 若仅主外壳 (MuMuNxMain.exe) 运行但实例未开：提示并等待设备窗口出现；
-    3. 若完全未运行：启动 MuMuNxMain.exe 桌面主程序并等待。
+    2. 若仅主外壳 (MuMuNxMain.exe) 运行但实例未开：调用 MuMuManager launch + show_window 呼出实例；
+    3. 若完全未运行：启动 MuMuNxMain.exe -v <target_vm> 带参数启动桌面主程序并显示前台。
     """
     target_vm = vm_index if (vm_index and vm_index != "auto") else "1"
     
@@ -317,25 +322,33 @@ def ensure_emulator_running(emulator_path=None, vm_index=None, auto_find_registr
             log.info(f"✓ 模拟器实例已在运行中 (PID: {dev_proc.pid}, 进程: {dev_name})，跳过冷启动")
         return True
 
-    # 2. 检查主界面外壳进程是否在运行
-    main_exe, main_proc, _ = get_running_process(["mumunxmain.exe"])
-    if main_proc:
-        if log:
-            log.info(f"检测到 MuMu 模拟器主程序已打开 (PID: {main_proc.pid})")
-            log.info(f"等待检测到实例 [{target_vm}] 运行窗口...")
-        return wait_for_device_process(timeout=30, log=log)
-
-    # 3. 如果完全未运行，启动主程序界面 (MuMuNxMain.exe)
-    if log:
-        log.info("模拟器当前未运行，正在启动桌面主程序界面...")
-
     paths_to_check = []
     if isinstance(emulator_path, list):
         paths_to_check.extend(emulator_path)
     elif emulator_path:
         paths_to_check.append(emulator_path)
 
-    # 优先启动 MuMuNxMain.exe (确保带完整前台主界面，而不是无头的后台服务)
+    mumu_mgr = find_mumu_manager(paths_to_check)
+
+    # 2. 检查主界面外壳进程是否在运行
+    main_exe, main_proc, _ = get_running_process(["mumunxmain.exe"])
+    if main_proc:
+        if log:
+            log.info(f"检测到 MuMu 模拟器主程序已打开 (PID: {main_proc.pid})，正在启动并呼出实例 [{target_vm}] 前台窗口...")
+        if mumu_mgr:
+            try:
+                subprocess.run([mumu_mgr, "control", "-v", str(target_vm), "launch"], capture_output=True, timeout=10)
+                time.sleep(2)
+                subprocess.run([mumu_mgr, "control", "-v", str(target_vm), "show_window"], capture_output=True, timeout=10)
+            except Exception as e:
+                if log:
+                    log.debug(f"尝试呼出窗口异常: {e}")
+        return wait_for_device_process(timeout=30, log=log)
+
+    # 3. 如果完全未运行，启动主程序界面 (MuMuNxMain.exe -v <target_vm>)
+    if log:
+        log.info(f"模拟器当前未运行，正在启动桌面主程序并载入实例 [{target_vm}]...")
+
     valid_path = None
     for p in paths_to_check:
         if p and os.path.exists(p) and "mumunxmain.exe" in p.lower():
@@ -352,9 +365,19 @@ def ensure_emulator_running(emulator_path=None, vm_index=None, auto_find_registr
                 break
 
     if valid_path:
-        start_process(valid_path, log=log)
+        launch_args = []
+        if "mumunxmain.exe" in valid_path.lower():
+            launch_args = ["-v", str(target_vm)]
+        start_process(valid_path, log=log, args=launch_args)
         if log:
-            log.info("已发送启动主程序命令，等待模拟器主界面及实例就绪...")
+            log.info(f"已发送启动实例 [{target_vm}] 命令，等待模拟器主界面及实例就绪...")
+        # 稍后调用 show_window 确保前台置顶
+        if mumu_mgr:
+            time.sleep(3)
+            try:
+                subprocess.run([mumu_mgr, "control", "-v", str(target_vm), "show_window"], capture_output=True, timeout=5)
+            except Exception:
+                pass
         return wait_for_device_process(timeout=60, log=log)
     else:
         if log:
