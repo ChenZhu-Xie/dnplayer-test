@@ -1,68 +1,63 @@
-﻿@echo off
+@echo off
 chcp 65001 >nul
-:: Switch to the script directory
 cd /d "%~dp0"
 
-echo ==================================================
-echo [BATCH] MuMu 模拟器账号切换启动器
-echo [BATCH] 当前工作目录: %cd%
-echo ==================================================
-echo [BATCH] 正在寻找 Python 环境...
+:: Kill previous instance window and process tree
+title MuMu_Account_Switcher_Starting
+taskkill /F /FI "WINDOWTITLE eq MuMu_Account_Switcher" /T >nul 2>nul
+title MuMu_Account_Switcher
 
-:: 定义候选 Python 路径 (用空格分隔)
-set "PYTHON_CANDIDATES="D:\Anaconda\envs\dnplayer\python.exe" "python""
-set PY_EXE=
+echo ==================================================
+echo [BATCH] MuMu Account Switcher Launcher
+echo [BATCH] Current Directory: %cd%
+echo ==================================================
+echo [BATCH] Checking and cleaning previous instances...
+echo [BATCH] Looking for Python environment...
 
-for %%P in (%PYTHON_CANDIDATES%) do (
-    if "%%~P"=="python" (
-        where python >nul 2>nul
-        if %errorlevel% equ 0 (
-            set "PY_EXE=python"
-            goto :found
-        )
-    ) else (
-        if exist "%%~P" (
-            set "PY_EXE=%%~P"
-            goto :found
-        )
-    )
+:: Search for Python
+set "PY_EXE="
+if exist "D:\Anaconda\envs\dnplayer\python.exe" (
+    set "PY_EXE=D:\Anaconda\envs\dnplayer\python.exe"
+    goto :found
 )
 
-if "%PY_EXE%"=="" (
-    echo.
-    echo [BATCH_ERROR] 找不到有效的 Python 环境，请检查路径配置！
-    echo 候选路径: %PYTHON_CANDIDATES%
-    echo.
-    pause
-    exit /b 1
+where python >nul 2>nul
+if %errorlevel% equ 0 (
+    set "PY_EXE=python"
+    goto :found
 )
-
-:found
-echo [BATCH] 找到 Python 环境: %PY_EXE%
-echo [BATCH] 正在启动 main_controller.py ...
-echo.
-
-:: Run the python script and capture exit code
-"%PY_EXE%" main_controller.py
-set EXIT_CODE=%errorlevel%
 
 echo.
-echo ==================================================
-echo [BATCH] Python脚本已结束，退出码: %EXIT_CODE%
-
-:: 根据退出码输出状态
-if %EXIT_CODE% equ 0 (
-    echo [BATCH_DONE] 账号切换成功！
-) else if %EXIT_CODE% equ 1 (
-    echo [BATCH_FAILED] 账号切换失败，请查看 bot_run.log 日志文件。
-) else if %EXIT_CODE% equ 2 (
-    echo [BATCH_INTERRUPTED] 用户手动中断。
-) else if %EXIT_CODE% equ 3 (
-    echo [BATCH_ERROR] 发生异常错误，请查看 bot_run.log 日志文件。
-) else (
-    echo [BATCH_UNKNOWN] 未知退出码: %EXIT_CODE%
-)
-echo ==================================================
+echo [BATCH_ERROR] Python environment not found!
 echo.
 pause
-exit /b %EXIT_CODE%
+exit /b 1
+
+:found
+echo [BATCH] Found Python: %PY_EXE%
+echo [BATCH] Starting main_controller.py ...
+echo.
+
+"%PY_EXE%" main_controller.py
+@set "EXIT_CODE=%errorlevel%"
+@echo off
+
+@echo.
+@echo ==================================================
+@echo [BATCH] Python process finished with code: %EXIT_CODE%
+@if %EXIT_CODE% equ 0 (
+    echo [BATCH_DONE] Account switch completed successfully!
+) else if %EXIT_CODE% equ 1 (
+    echo [BATCH_FAILED] Failed. Please check bot_run.log.
+) else if %EXIT_CODE% equ 2 (
+    echo [BATCH_INTERRUPTED] User interrupted.
+) else if %EXIT_CODE% equ 3 (
+    echo [BATCH_ERROR] Exception occurred. Please check bot_run.log.
+) else (
+    echo [BATCH_UNKNOWN] Unknown exit code: %EXIT_CODE%
+)
+@echo ==================================================
+@echo.
+@echo [BATCH] Note: This window stays open as a log. It will be auto-closed by the next run.
+@pause
+@exit /b %EXIT_CODE%

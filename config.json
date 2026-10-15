@@ -15,7 +15,7 @@
   },
   "settings": {
     "vm_index": "1",
-    "restart_emulator": false,
+    "restart_emulator": true,
     "click_confidence": 0.8,
     "step_timeout": 120,
     "log_file": "bot_run.log",

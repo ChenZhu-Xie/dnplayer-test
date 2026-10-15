@@ -25,7 +25,12 @@ def setup_logger(log_file="bot_run.log"):
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     
-    # 控制台处理器
+    # 控制台处理器 (配置编码容错，避免 Windows GBK 控制台抛 UnicodeEncodeError)
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)

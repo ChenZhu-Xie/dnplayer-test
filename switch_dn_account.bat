@@ -1,61 +1,62 @@
-﻿@echo off
-chcp 65001
-:: Switch to the script directory
+@echo off
+chcp 65001 >nul
 cd /d "%~dp0"
 
-echo [BATCH] 当前工作目录: %cd%
-echo [BATCH] 正在寻找 Python 环境...
+:: Kill previous instance window and process tree
+title LDPlayer_Account_Switcher_Starting
+taskkill /F /FI "WINDOWTITLE eq LDPlayer_Account_Switcher" /T >nul 2>nul
+title LDPlayer_Account_Switcher
 
-:: 定义候选 Python 路径 (用空格分隔)
-set "PYTHON_CANDIDATES="D:\Anaconda\envs\dnplayer\python.exe" "python""
-set PY_EXE=
+echo ==================================================
+echo [BATCH] LDPlayer Account Switcher Launcher
+echo [BATCH] Current Directory: %cd%
+echo ==================================================
+echo [BATCH] Checking and cleaning previous instances...
+echo [BATCH] Looking for Python environment...
 
-for %%P in (%PYTHON_CANDIDATES%) do (
-    if "%%~P"=="python" (
-        where python >nul 2>nul
-        if %errorlevel% equ 0 (
-            set "PY_EXE=python"
-            goto :found
-        )
-    ) else (
-        if exist "%%~P" (
-            set "PY_EXE=%%~P"
-            goto :found
-        )
-    )
+:: Search for Python
+set "PY_EXE="
+if exist "D:\Anaconda\envs\dnplayer\python.exe" (
+    set "PY_EXE=D:\Anaconda\envs\dnplayer\python.exe"
+    goto :found
 )
 
-if "%PY_EXE%"=="" (
-    echo [BATCH_ERROR] 找不到有效的 Python 环境，请检查路径配置。
-    pause
-    exit /b 1
+where python >nul 2>nul
+if %errorlevel% equ 0 (
+    set "PY_EXE=python"
+    goto :found
 )
+
+echo.
+echo [BATCH_ERROR] Python environment not found!
+echo.
+pause
+exit /b 1
 
 :found
-echo [BATCH] 使用 Python: %PY_EXE%
-echo [BATCH] 启动账号切换脚本...
+echo [BATCH] Found Python: %PY_EXE%
+echo [BATCH] Starting main_controller.py ...
 echo.
 
-:: Run the python script and capture exit code
 "%PY_EXE%" main_controller.py
-set EXIT_CODE=%errorlevel%
+@set "EXIT_CODE=%errorlevel%"
+@echo off
 
-echo.
-echo [BATCH] Python脚本已结束，退出码: %EXIT_CODE%
-
-:: 根据退出码输出状态
-if %EXIT_CODE% equ 0 (
-    echo [BATCH_DONE] 账号切换成功
+@echo.
+@echo ==================================================
+@echo [BATCH] Python process finished with code: %EXIT_CODE%
+@if %EXIT_CODE% equ 0 (
+    echo [BATCH_DONE] Account switch completed successfully!
 ) else if %EXIT_CODE% equ 1 (
-    echo [BATCH_FAILED] 账号切换失败，请查看日志
+    echo [BATCH_FAILED] Failed. Please check bot_run.log.
 ) else if %EXIT_CODE% equ 2 (
-    echo [BATCH_INTERRUPTED] 用户手动中断
+    echo [BATCH_INTERRUPTED] User interrupted.
 ) else if %EXIT_CODE% equ 3 (
-    echo [BATCH_ERROR] 发生异常错误
+    echo [BATCH_ERROR] Exception occurred. Please check bot_run.log.
 ) else (
-    echo [BATCH_UNKNOWN] 未知退出码: %EXIT_CODE%
+    echo [BATCH_UNKNOWN] Unknown exit code: %EXIT_CODE%
 )
-
-:: 返回退出码给调用者
-pause
-exit /b %EXIT_CODE%
+@echo ==================================================
+@echo.
+@pause
+@exit /b %EXIT_CODE%

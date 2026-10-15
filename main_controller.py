@@ -15,21 +15,45 @@ def load_config(config_path="config.json"):
     with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
+def cleanup_previous_scripts(log=None):
+    """双重保障：清理任何残留的旧 main_controller.py Python 进程"""
+    import psutil
+    curr_pid = os.getpid()
+    for p in psutil.process_iter(['pid', 'name']):
+        try:
+            if p.info['pid'] == curr_pid:
+                continue
+            name = (p.info.get('name') or '').lower()
+            if 'python' in name:
+                try:
+                    cmdline = ' '.join(p.cmdline() or []).lower()
+                    if 'main_controller.py' in cmdline:
+                        if log:
+                            log.info(f"清理旧脚本残留进程 (PID: {p.info['pid']})...")
+                        p.kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
 def run_automation(config, log):
     """执行完整的自动化流程"""
+    cleanup_previous_scripts(log)
+    
     exe_path_conf = (
         config['paths'].get('mumu_exe') or 
         config['paths'].get('emulator_exe') or 
         config['paths'].get('dnplayer_exe')
     )
-    vm_index = config['settings'].get('vm_index', 'auto')
-    should_restart = config['settings'].get('restart_emulator', False)
+    vm_index = config['settings'].get('vm_index', '1')
+    should_restart = config['settings'].get('restart_emulator', True)
     
     log.info("")
     log.info("[启动] 开始执行自动化流程...")
     
     if should_restart:
-        log.info("[步骤1] 执行模拟器冷重启...")
+        target_name = f"device-{vm_index}" if vm_index != "auto" else "模拟器"
+        log.info(f"[步骤1] 执行 {target_name} 重启流程 (关闭 -> 确认无进程 -> reboot)...")
         emulator_manager.restart_emulator(
             emulator_path=exe_path_conf,
             vm_index=vm_index,
