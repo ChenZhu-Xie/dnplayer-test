@@ -57,4 +57,5 @@ if %EXIT_CODE% equ 0 (
 )
 
 :: 返回退出码给调用者
+pause
 exit /b %EXIT_CODE%

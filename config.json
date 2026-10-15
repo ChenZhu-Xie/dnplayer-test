@@ -1,5 +1,9 @@
 {
   "paths": {
+    "mumu_exe": [
+      "H:\\Netease\\MuMuPlayer\\nx_main\\MuMuNxMain.exe",
+      "H:\\Netease\\MuMuPlayer\\nx_main\\MuMuManager.exe"
+    ],
     "dnplayer_exe": [
       "E:\\Runtime\\leidian\\LDPlayer9\\dnplayer.exe",
       "H:\\雷电\\LDPlayer9\\dnplayer.exe"
@@ -10,8 +14,14 @@
     ]
   },
   "settings": {
+    "vm_index": "1",
+    "restart_emulator": false,
     "click_confidence": 0.8,
+    "step_timeout": 120,
     "log_file": "bot_run.log",
-    "auto_find_from_registry": true
+    "auto_find_from_registry": true,
+    "auto_resize_window": false,
+    "target_window_width": 796,
+    "target_window_height": 1348
   }
 }

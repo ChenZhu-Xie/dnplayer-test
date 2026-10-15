@@ -1,10 +1,10 @@
-# LDPlayer Game Automation System (OpenClaw)
+# MuMuPlayer / LDPlayer Game Automation System (OpenClaw)
 
-A Python-based automation framework for LDPlayer (Android Emulator) that uses computer vision to perform complex game workflows, such as automated account switching and login.
+A Python-based automation framework for Android Emulators (primarily **MuMuPlayer 12**, with backward compatibility for LDPlayer) that uses computer vision to perform complex game workflows, such as automated account switching and login.
 
 ## Project Overview
 
-The system is designed to automate specific tasks within a mobile game running on LDPlayer. It uses a "Step-Action-Verify" loop:
+The system is designed to automate specific tasks within a mobile game running on MuMuPlayer (or LDPlayer). It uses a "Step-Action-Verify" loop:
 1.  **Step**: Define a logical goal (e.g., "Login").
 2.  **Action**: Identify a UI element using template matching and click it.
 3.  **Verify**: Check if the next expected UI element appears or if the current one disappears.
@@ -15,23 +15,24 @@ The project also handles common interruptions like resource downloads, update pr
 
 -   **Python 3**: The primary language for logic and orchestration.
 -   **OpenCV (cv2)**: Used for high-performance image template matching (`TM_CCOEFF_NORMED`).
--   **PyAutoGUI**: Used for cross-platform mouse control and screen capture.
--   **psutil**: Used for managing the LDPlayer process (monitoring, killing, and restarting).
+-   **PyAutoGUI / pygetwindow**: Used for mouse control, window management, and screen capture.
+-   **psutil**: Used for managing emulator processes (monitoring, killing, and restarting).
 -   **NumPy**: Used for efficient image data manipulation.
--   **Windows Registry (winreg)**: Used to automatically locate the LDPlayer installation path.
+-   **MuMuManager CLI / Winreg**: Used to automatically locate and control the MuMuPlayer emulator (with registry auto-detection).
 
 ## Project Structure
 
 -   `main_controller.py`: The main entry point. Handles configuration loading, logger setup, and execution flow.
--   `config.json`: Configuration file for local paths (LDPlayer, Python) and global settings (confidence levels, logging).
+-   `config.json`: Configuration file for local paths (`mumu_exe`, `dnplayer_exe`, `python_exe`), VM instance index (`vm_index`), and global settings.
 -   `modules/`:
-    -   `game_bot.py`: Implements the `GameBot` class which defines the high-level business logic and automation sequences.
+    -   `game_bot.py`: Implements the `GameBot` class which defines the high-level business logic, window activation, and automation sequences.
     -   `template_matcher.py`: A robust vision engine that supports multiple template images per logical target using OpenCV.
-    -   `emulator_manager.py`: Utilities for starting, stopping, and locating the LDPlayer emulator.
+    -   `emulator_manager.py`: Utilities for starting, stopping, controlling, and locating the MuMu/LDPlayer emulator. Supports official `MuMuManager.exe` CLI control.
     -   `logger.py`: Centralized logging configuration.
     -   `visual_bot.py`: (Legacy/Alternative) Vision utilities using PyAutoGUI's native methods.
 -   `assets/`: A directory containing subfolders for each UI element. Each folder (e.g., `assets/start/`) can contain multiple images to improve recognition across different resolutions or states.
--   `switch_dn_account.bat`: A helper script for executing account switching logic.
+-   `switch_mumu_account.bat` / `switch_dn_account.bat`: Helper batch scripts for executing account switching logic.
+-   `locate_emulator.py`: Diagnostic utility to find and focus the emulator window.
 
 ## Getting Started
 
@@ -39,18 +40,23 @@ The project also handles common interruptions like resource downloads, update pr
 
 Ensure you have the following Python packages installed:
 ```bash
-pip install pyautogui opencv-python numpy psutil
+pip install pyautogui opencv-python numpy psutil pygetwindow pywin32
 ```
 
 ### Configuration
 
 1.  Open `config.json`.
-2.  Verify the `dnplayer_exe` paths match your local installation.
-3.  Adjust `click_confidence` (default `0.8`) if the bot is failing to find UI elements or clicking incorrectly.
+2.  Verify the `mumu_exe` path matches your local MuMu installation (defaults to `H:\Netease\MuMuPlayer\nx_main\MuMuNxMain.exe` and `MuMuManager.exe`).
+3.  Set `vm_index` to your desired instance (default: `"1"` or `"auto"`).
+4.  Adjust `click_confidence` (default `0.8`) if the bot is failing to find UI elements or clicking incorrectly.
 
 ### Running the Bot
 
-Execute the main controller:
+Execute via batch script:
+```cmd
+switch_mumu_account.bat
+```
+Or directly with Python:
 ```bash
 python main_controller.py
 ```

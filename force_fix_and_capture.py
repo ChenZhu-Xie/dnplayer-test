@@ -5,14 +5,24 @@ import os
 import time
 
 def force_fix_and_capture():
-    # 窗口信息 (之前成功时的坐标，确保准确)
-    # 我会先运行一次定位确保当前窗口坐标是最新的
+    # 窗口信息 (严格基于模拟器进程 PID 定位)
     import pygetwindow as gw
-    titles = [t for t in gw.getAllTitles() if "雷电模拟器" in t or "LDPlayer" in t]
-    if not titles:
+    import psutil, win32process
+    ALLOWED_EMU = {"mumunxdevice.exe", "nemuplayer.exe", "dnplayer.exe"}
+    emu_pids = {p.info['pid'] for p in psutil.process_iter(['pid', 'name']) if (p.info.get('name') or '').lower() in ALLOWED_EMU}
+    win = None
+    for w in gw.getAllWindows():
+        if not w.title: continue
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(w._hWnd)
+            if pid in emu_pids:
+                win = w
+                break
+        except Exception:
+            pass
+    if not win:
         print("FAIL: 未找到模拟器窗口")
         return False
-    win = gw.getWindowsWithTitle(titles[0])[0]
     left, top, w, h = win.left, win.top, win.width, win.height
     print(f"当前模拟器就绪: {left, top, w, h}")
 

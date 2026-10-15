@@ -6,13 +6,23 @@ import os
 import time
 
 def robust_solve():
-    # 1. 强制激活模拟器
-    titles = [t for t in gw.getAllTitles() if "雷电模拟器" in t or "LDPlayer" in t]
-    if not titles:
+    # 1. 强制激活模拟器 (严格匹配模拟器进程 PID)
+    import psutil, win32process
+    ALLOWED_EMU = {"mumunxdevice.exe", "nemuplayer.exe", "dnplayer.exe"}
+    emu_pids = {p.info['pid'] for p in psutil.process_iter(['pid', 'name']) if (p.info.get('name') or '').lower() in ALLOWED_EMU}
+    win = None
+    for w in gw.getAllWindows():
+        if not w.title: continue
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(w._hWnd)
+            if pid in emu_pids:
+                win = w
+                break
+        except Exception:
+            pass
+    if not win:
         print("FAIL: 未找到模拟器窗口")
         return False
-    
-    win = gw.getWindowsWithTitle(titles[0])[0]
     try:
         if win.isMinimized: win.restore()
         win.activate()
