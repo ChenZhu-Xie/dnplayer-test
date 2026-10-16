@@ -2,10 +2,9 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 
-:: Kill previous instance window and process tree
-title MuMu_Account_Switcher_Starting
-taskkill /F /FI "WINDOWTITLE eq MuMu_Account_Switcher" /T >nul 2>nul
+:: Kill previous instance terminal / process tree (supports Windows Terminal tabs & classic console)
 title MuMu_Account_Switcher
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$myPid=(Get-CimInstance Win32_Process -Filter ('ProcessId=' + $PID)).ParentProcessId; $pidFile='%~dp0.switcher_mumu.pid'; if (Test-Path $pidFile) { $oldPid=(Get-Content $pidFile -ErrorAction SilentlyContinue | Out-String).Trim(); if ($oldPid -and $oldPid -ne \"$myPid\") { $oldP=Get-CimInstance Win32_Process -Filter ('ProcessId=' + $oldPid) -ErrorAction SilentlyContinue; if ($oldP -and ($oldP.Name -eq 'cmd.exe' -or $oldP.CommandLine -match 'switch_mumu_account')) { taskkill /F /PID $oldPid /T 2>$null } } }; Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'cmd.exe' -and $_.ProcessId -ne $myPid -and $_.CommandLine -match 'switch_mumu_account\.bat' } | ForEach-Object { taskkill /F /PID $_.ProcessId /T 2>$null }; Set-Content -Path $pidFile -Value $myPid" >nul 2>nul
 
 echo ==================================================
 echo [BATCH] MuMu Account Switcher Launcher

@@ -16,12 +16,14 @@ def load_config(config_path="config.json"):
         return json.load(f)
 
 def cleanup_previous_scripts(log=None):
-    """双重保障：清理任何残留的旧 main_controller.py Python 进程"""
+    """双重保障：清理任何残留的旧 main_controller.py Python 进程及旧批处理终端"""
     import psutil
     curr_pid = os.getpid()
+    parent_pid = os.getppid()
     for p in psutil.process_iter(['pid', 'name']):
         try:
-            if p.info['pid'] == curr_pid:
+            pid = p.info['pid']
+            if pid in (curr_pid, parent_pid):
                 continue
             name = (p.info.get('name') or '').lower()
             if 'python' in name:
@@ -29,7 +31,16 @@ def cleanup_previous_scripts(log=None):
                     cmdline = ' '.join(p.cmdline() or []).lower()
                     if 'main_controller.py' in cmdline:
                         if log:
-                            log.info(f"清理旧脚本残留进程 (PID: {p.info['pid']})...")
+                            log.info(f"清理旧脚本残留进程 (PID: {pid})...")
+                        p.kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            elif 'cmd' in name:
+                try:
+                    cmdline = ' '.join(p.cmdline() or []).lower()
+                    if 'switch_mumu_account' in cmdline or 'switch_dn_account' in cmdline:
+                        if log:
+                            log.info(f"清理旧批处理终端进程 (PID: {pid})...")
                         p.kill()
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
